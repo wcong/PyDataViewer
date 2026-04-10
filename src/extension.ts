@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!target) {
 				const selected = await vscode.window.showOpenDialog({
 					canSelectMany: false,
-					openLabel: 'Open with PKL Viewer',
+					openLabel: 'Open with PyData Viewer',
 				});
 
 				if (!selected || selected.length === 0) {
@@ -123,13 +123,58 @@ function loadPklFile(
 
 	const pythonScript = [
 		"import json",
+		"import os",
 		"import pickle",
 		"import sys",
 		"",
 		"path = sys.argv[1]",
+		"ext = os.path.splitext(path)[1].lower()",
 		"max_depth = int(sys.argv[2])",
 		"max_items = 200",
 		"max_raw = 20000",
+		"max_table_rows = 10",
+		"",
+		"def summarize_pandas(obj):",
+		"    try:",
+		"        import pandas as pd",
+		"    except Exception:",
+		"        return {\"__type__\": \"pandas_missing\", \"repr\": \"pandas is required\"}",
+		"    if isinstance(obj, pd.DataFrame):",
+		"        return {",
+		"            \"__type__\": \"DataFrame\",",
+		"            \"shape\": list(obj.shape),",
+		"            \"columns\": list(obj.columns)[:max_items],",
+		"            \"head\": obj.head(max_table_rows).to_dict(orient=\"list\"),",
+		"        }",
+		"    if isinstance(obj, pd.Series):",
+		"        return {",
+		"            \"__type__\": \"Series\",",
+		"            \"shape\": list(obj.shape),",
+		"            \"name\": str(obj.name),",
+		"            \"head\": obj.head(max_table_rows).to_list(),",
+		"        }",
+		"    return {\"__type__\": type(obj).__name__, \"repr\": repr(obj)}",
+		"",
+		"def load_data(path):",
+		"    if ext in (\".h5\", \".hdf5\", \".hdf\"):",
+		"        try:",
+		"            import pandas as pd",
+		"        except Exception:",
+		"            raise RuntimeError(\"pandas is required to open HDF5 files. Install pandas in the selected python environment.\")",
+		"        with pd.HDFStore(path, mode=\"r\") as store:",
+		"            keys = list(store.keys())",
+		"            out = {\"__type__\": \"hdf5\", \"keys\": keys[:max_items], \"items\": {}}",
+		"            for key in keys[:max_items]:",
+		"                try:",
+		"                    out[\"items\"][key] = summarize_pandas(store.get(key))",
+		"                except Exception as inner:",
+		"                    out[\"items\"][key] = {\"__type__\": \"error\", \"repr\": str(inner)}",
+		"            remaining = len(keys) - len(out[\"keys\"])",
+		"            if remaining > 0:",
+		"                out[\"__truncated__\"] = remaining",
+		"            return out",
+		"    with open(path, \"rb\") as handle:",
+		"        return pickle.load(handle)",
 		"",
 		"def to_json(obj, depth=0, seen=None):",
 		"    if seen is None:",
@@ -188,8 +233,7 @@ function loadPklFile(
 		"    except Exception:",
 		"        return {\"__type__\": type(obj).__name__, \"repr\": \"<unrepresentable>\"}",
 		"",
-		"with open(path, \"rb\") as handle:",
-		"    data = pickle.load(handle)",
+		"data = load_data(path)",
 		"",
 		"raw = repr(data)",
 		"if len(raw) > max_raw:",
@@ -231,7 +275,7 @@ function getWebviewHtml(): string {
 <head>
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>PKL Viewer</title>
+	<title>PyData Viewer</title>
 	<style>
 		:root {
 			color-scheme: light dark;
@@ -313,7 +357,7 @@ function getWebviewHtml(): string {
 </head>
 <body>
 	<header>
-		<h2>PKL Viewer</h2>
+		<h2>PyData Viewer</h2>
 		<button id="refresh">Refresh</button>
 	</header>
 	<div id="status">Loading...</div>

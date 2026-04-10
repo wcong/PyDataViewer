@@ -1,7 +1,7 @@
 {
-  "name": "pklviewer",
-  "displayName": "PklViewer",
-  "description": "",
+  "name": "pydata-viewer",
+  "displayName": "PyData Viewer",
+  "description": "View Python data files in a custom read-only viewer.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -23,7 +23,7 @@
     "commands": [
       {
         "command": "pklviewer.openPkl",
-        "title": "PKL Viewer: Open File"
+        "title": "PyData Viewer: Open File"
       }
     ],
     "menus": {
@@ -45,21 +45,30 @@
     "customEditors": [
       {
         "viewType": "pklviewer.viewer",
-        "displayName": "PKL Viewer",
+        "displayName": "PyData Viewer",
         "selector": [
           {
             "filenamePattern": "*.pkl"
+          },
+          {
+            "filenamePattern": "*.h5"
+          },
+          {
+            "filenamePattern": "*.hdf5"
+          },
+          {
+            "filenamePattern": "*.hdf"
           }
         ]
       }
     ],
     "configuration": {
-      "title": "PKL Viewer",
+      "title": "PyData Viewer",
       "properties": {
         "pklviewer.pythonPath": {
           "type": "string",
           "default": "python",
-          "description": "Python executable used to decode PKL files."
+          "description": "Python executable used to decode data files."
         },
         "pklviewer.condaPythonPath": {
           "type": "string",
@@ -77,7 +86,7 @@
           "default": 8,
           "minimum": 1,
           "maximum": 20,
-          "description": "Maximum depth when expanding objects in the PKL viewer."
+          "description": "Maximum depth when expanding objects in the viewer."
         }
       }
     }
